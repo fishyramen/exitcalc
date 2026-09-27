@@ -238,12 +238,13 @@ footer a:hover{text-decoration:underline}
             <div class="err" id="solInErr"></div>
           </div>
           <div class="field">
-            <label for="tax">Sell tax / slippage <span class="tip">REALISTIC</span></label>
+            <label for="tax">Sell tax / slippage <span class="tip">MEMECOINS ARE ROUGH</span></label>
             <div class="inputwrap has-suffix">
-              <input type="text" id="tax" placeholder="5" value="5">
+              <input type="text" id="tax" placeholder="15" value="15">
               <span class="suffix">%</span>
             </div>
             <div class="err" id="taxErr"></div>
+            <div class="hint">realistic: <b>10–30%</b> for most memecoins</div>
           </div>
         </div>
       </div>
@@ -320,7 +321,6 @@ let lastRecalcProfit=null;
 let animToken=0;
 let caDebounce=null;
 
-/* =========== SOL price =========== */
 async function fetchSol(){
   const t0=performance.now();
   try{
@@ -336,7 +336,6 @@ async function fetchSol(){
 }
 function paintSol(){$("#solPrice").textContent="$"+state.solUsd.toFixed(2)}
 
-/* =========== live MC =========== */
 function onCaChange(){
   clearTimeout(caDebounce);
   const v=$("#caInput").value.trim();
@@ -358,7 +357,6 @@ function onCaChange(){
   caDebounce=setTimeout(()=>{fetchLiveMc(true,true).catch(()=>{})},380);
 }
 
-/* showStatus: write the CA status line. autoLive: turn live mode on once data lands. */
 async function fetchLiveMc(showStatus,autoLive){
   const ca=state.ca;
   if(!ca)return{ok:false};
@@ -368,7 +366,7 @@ async function fetchLiveMc(showStatus,autoLive){
     const r=await fetch("https://api.dexscreener.com/latest/dex/tokens/"+ca,{signal:sig(10000),cache:"no-store"});
     if(!r.ok)throw new Error("HTTP "+r.status);
     const j=await r.json();
-    if(ca!==state.ca)return{ok:false};            // superseded by a newer CA
+    if(ca!==state.ca)return{ok:false};
     const pairs=(j.pairs||[]).filter(p=>p.chainId==="solana"&&p.baseToken&&p.baseToken.address===ca);
     if(!pairs.length)throw new Error("no market");
     pairs.sort((a,b)=>(b.liquidity?.usd||0)-(a.liquidity?.usd||0));
@@ -381,7 +379,7 @@ async function fetchLiveMc(showStatus,autoLive){
         :"live MC unavailable for this token";
     }
     state.lastUpdate=Date.now();
-    if(autoLive&&!state.liveOn){setLive(true)}     // ← paste = live, automatically
+    if(autoLive&&!state.liveOn){setLive(true)}
     else if(state.liveOn){syncExit(false)}
     return{ok:true,ms:performance.now()-t0};
   }catch(e){
@@ -390,7 +388,6 @@ async function fetchLiveMc(showStatus,autoLive){
   }
 }
 
-/* =========== live loop (every 5s) =========== */
 async function liveTick(){
   if(!state.liveOn||document.hidden)return;
   const status=$("#liveStatus"),txt=$("#liveTxt");
@@ -401,7 +398,7 @@ async function liveTick(){
       state.ca?fetchLiveMc(false,false):Promise.resolve({ok:false}),
       fetchSol()
     ]);
-    if(!state.liveOn||document.hidden)return;     // toggled off / hidden mid-fetch
+    if(!state.liveOn||document.hidden)return;
     const mc=results[0]||{ok:false},sol=results[1]||{ok:false};
     status.classList.remove("updating");
     if(mc.ok||sol.ok)state.lastUpdate=Date.now();
@@ -473,7 +470,6 @@ $("#liveToggle").addEventListener("click",()=>{
 });
 $("#caInput").addEventListener("input",onCaChange);
 
-/* =========== calc =========== */
 function computeProfit(){
   const buyMc=parseNum($("#buyMc").value);
   const exitMc=parseNum($("#exitMc").value);
